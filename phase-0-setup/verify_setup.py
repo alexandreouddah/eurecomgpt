@@ -37,39 +37,48 @@ REPORT_PATH = REPO_ROOT / "submission" / "phase0_report.json"
 # --------------------------------------------------------------------------- #
 # Functions YOU implement
 # --------------------------------------------------------------------------- #
+
 def parse_gcloud_config(raw: str) -> dict:
-    """Parse the JSON emitted by ``gcloud config list --format=json``.
+    if not raw.strip():
+        return {"account": "", "project": ""}
 
-    Return ``{"account": <str>, "project": <str>}`` using empty strings when a
-    value is absent. The relevant fields live under the ``"core"`` section, e.g.::
+    try:
+        config = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"account": "", "project": ""}
 
-        {"core": {"account": "you@example.com", "project": "my-proj-123"}}
+    core = config.get("core", {}) if isinstance(config, dict) else {}
 
-    Args:
-        raw: the raw stdout string from the gcloud command (may be empty).
-    """
-    # TODO: parse `raw` as JSON and return {"account": ..., "project": ...}
-    #       from the "core" section. Return empty strings if raw is empty or a
-    #       field is missing.
-    raise NotImplementedError("Phase 0: implement parse_gcloud_config()")
+    if not isinstance(core, dict):
+        core = {}
+
+    return {
+        "account": core.get("account") or "",
+        "project": core.get("project") or "",
+    }
 
 
 def parse_repo_slug(remote_url: str) -> str:
-    """Turn a GitHub remote URL into an ``owner/repo`` slug (no ``.git`` suffix).
+    url = remote_url.strip()
 
-    Must handle both forms git prints:
+    if url.startswith("https://github.com/"):
+        path = url[len("https://github.com/"):]
+    elif url.startswith("git@github.com:"):
+        path = url[len("git@github.com:"):]
+    else:
+        return ""
 
-      * HTTPS: ``https://github.com/eurecom/clouds-lab.git``  -> ``eurecom/clouds-lab``
-      * SSH:   ``git@github.com:eurecom/clouds-lab.git``      -> ``eurecom/clouds-lab``
+    path = path.strip("/")
 
-    Return ``""`` if the URL is empty or not a github.com URL.
+    if path.endswith(".git"):
+        path = path[:-4]
 
-    Args:
-        remote_url: output of ``git remote get-url origin`` (may be empty).
-    """
-    # TODO: return "owner/repo" for both the HTTPS and SSH forms shown above.
-    #       Strip any trailing ".git". Return "" if not a github.com URL.
-    raise NotImplementedError("Phase 0: implement parse_repo_slug()")
+    parts = path.split("/")
+
+    if len(parts) != 2 or not all(parts):
+        return ""
+
+    return "/".join(parts)
 
 
 # --------------------------------------------------------------------------- #
