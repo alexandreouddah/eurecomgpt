@@ -44,33 +44,36 @@ Copy these from `submission/phase1_report.json`. Cold is `cold_ms`; warm median 
 
 | Platform | Cold (ms) | Warm median (ms) |
 |---|---|---|
-| IaaS VM | <!--answer:vm_cold_ms-->270.1<!--/answer--> | <!--answer:vm_warm_median_ms-->208.9<!--/answer--> |
-| Cloud Run | <!--answer:cloudrun_cold_ms-->3653.4<!--/answer--> | <!--answer:cloudrun_warm_median_ms-->637.5<!--/answer--> |
-| Cloud Function | <!--answer:function_cold_ms-->691.0<!--/answer--> | <!--answer:function_warm_median_ms-->654.6<!--/answer--> |
+| IaaS VM | <!--answer:vm_cold_ms-->249.2<!--/answer--> | <!--answer:vm_warm_median_ms-->213.4<!--/answer--> |
+| Cloud Run | <!--answer:cloudrun_cold_ms-->1669.7<!--/answer--> | <!--answer:cloudrun_warm_median_ms-->648.5<!--/answer--> |
+| Cloud Function | <!--answer:function_cold_ms-->1549.3<!--/answer--> | <!--answer:function_warm_median_ms-->643.6<!--/answer--> |
 
 Include your histogram or plot of the warm distribution below (an image, or the ASCII chart
 `measure.py` prints). This is read by a human, not the grader:
 
 <!--answer:latency_plot-->
 ```text
-Warm-request latency distribution (20 requests per platform)
-Each # represents one measured request.
+Warm-request latency distribution
+20 requests per platform; each # represents one request.
 
-Bucket (ms)   VM                        Cloud Run                 Cloud Function
-----------------------------------------------------------------------------------
-0-149          (0)                      ##### (5)                 ### (3)
-150-299       #################### (20)  (0)                       (0)
-300-599        (0)                       (0)                       (0)
-600-749        (0)                      ############### (15)      ################# (17)
-750+           (0)                       (0)                       (0)
+Bucket (ms)    VM                           Cloud Run                    Cloud Function
+------------------------------------------------------------------------------------------
+0-149           (0)                         ### (3)                      ### (3)
+150-299        ################### (19)      (0)                          (0)
+300-599        # (1)                         (0)                          (0)
+600-749         (0)                         ################# (17)       ################# (17)
+750+            (0)                          (0)                          (0)
 
-Additional warm-latency statistics (ms):
-VM: min=208.3, median=208.9, p95=212.8, max=214.4
-Cloud Run: min=122.3, median=637.5, p95=686.6, max=690.9
-Cloud Function: min=120.4, median=654.6, p95=711.7, max=749.2
+Warm-latency statistics (ms):
+VM: min=210.4, median=213.4, p95=293.4, max=455.6
+Cloud Run: min=120.4, median=648.5, p95=679.0, max=701.1
+Cloud Function: min=119.1, median=643.6, p95=676.8, max=697.3
 ```
 
-The VM measurements form a narrow distribution around 209 ms. Cloud Run and Cloud Functions show two groups of warm observations: approximately 120-140 ms and 630-750 ms. These variations may involve network conditions, connection reuse or platform behaviour; the measurements alone cannot identify their exact cause.
+The VM measurements are comparatively stable, while the managed
+platforms exhibit greater variation. Network conditions, connection
+reuse, request routing and platform scheduling may contribute;
+these observations alone cannot identify the exact causes.
 <!--/answer-->
 
 ---
@@ -113,14 +116,14 @@ SERVICE: echo
 REGION: us-central1
 URL: https://echo-268693603078.us-central1.run.app
 LAST DEPLOYED BY: service-268693603078@gcf-admin-robot.iam.gserviceaccount.com
-LAST DEPLOYED AT: 2026-10-26T21:01:09.411057Z
+LAST DEPLOYED AT: 2026-10-26T23:16:41.433574Z
 
 ✔
 SERVICE: echo-bot
 REGION: us-central1
 URL: https://echo-bot-268693603078.us-central1.run.app
 LAST DEPLOYED BY: alexandre.ouddah@eurecom.fr
-LAST DEPLOYED AT: 2026-10-26T20:54:51.380893Z
+LAST DEPLOYED AT: 2026-10-26T23:15:22.509170Z
 ```
 <!--/answer-->
 
@@ -129,5 +132,5 @@ cold start resembles Cloud Run's so closely, and what — if anything — genuin
 the two deployment paths. (~120 words)
 
 <!--answer:convergence_explanation-->
-The service listing shows that both echo-bot and the HTTP function echo are represented as Cloud Run services. This is expected: a second-generation Cloud Function is built into a container and executed on Cloud Run infrastructure. Their warm medians are very similar: 637.5 ms for Cloud Run and 654.6 ms for the Function, a difference of only 17.1 ms (about 2.7%). However, the first measured requests differ considerably: 3653.4 ms for Cloud Run versus 691.0 ms for the Function. A first request is not necessarily a verified cold start, so this single observation cannot establish a general cold-start ranking. The main deployment difference is that Cloud Run uses an explicitly prepared Docker image, while the Function uses Python source code and a specified entry point, with its container build handled automatically.
+The service listing shows both echo-bot and echo as Cloud Run services. The second-generation HTTP Function is built into a container and executed on Cloud Run infrastructure. Both therefore benefit from managed container instances and automatic scaling. Their warm median latencies are 648.5 ms and 643.6 ms, respectively, a difference of 4.9 ms (0.8%). Their first measured requests took 1669.7 ms and 1549.3 ms. These first-request measurements are only approximations of cold starts: the measurement script cannot guarantee scale-to-zero or isolate startup time from network latency. A single campaign cannot establish a general cold-start ranking. The main deployment distinction remains the packaging process: Cloud Run uses the explicitly built Docker image, whereas the Function accepts Python source and an HTTP entry point, with container building handled automatically.
 <!--/answer-->
