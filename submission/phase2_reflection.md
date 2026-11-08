@@ -1,83 +1,53 @@
-# Phase 2 — Reflection: where does parallelism stop helping?
+# Phase 2 — Reflection
 
-Copy this file to `submission/phase2_reflection.md`, fill in every answer slot, and commit it:
+## 1. Measurements
 
-```bash
-cp phase-2-tiny-gpt/reflection_template.md submission/phase2_reflection.md
-```
+**Naive attention (ms):** <!--answer:attn_naive_ms-->641.925<!--/answer-->
 
-**How to fill it in.** Each answer sits between a pair of `<!--answer:...-->` markers. Replace
-the `TODO` line with your answer — **leave the markers themselves untouched**, they are how the
-grader finds your answers. Anything you write outside the markers is ignored, so add extra
-prose, tables or your threading plot freely.
+**Vectorized attention (ms):** <!--answer:attn_vectorized_ms-->2.945<!--/answer-->
 
-Numbers in section 1 must **match `submission/phase2_report.json`** — copy them across, do not
-retype from memory; they are checked against it.
+**CPU training (100 steps, ms):** <!--answer:cpu_ms-->414208.0<!--/answer-->
 
----
+**GPU training (100 steps, ms):** <!--answer:gpu_ms-->13701.2<!--/answer-->
 
-## 1. Your measurements
+**Final training loss (2,000 steps):** <!--answer:final_loss-->1.4728<!--/answer-->
 
-| | Value |
-|---|---|
-| Naive attention, ms (`attention.naive_ms`) | <!--answer:attn_naive_ms-->TODO<!--/answer--> |
-| Vectorized attention, ms (`attention.vectorized_ms`) | <!--answer:attn_vectorized_ms-->TODO<!--/answer--> |
-| CPU training, ms for 100 steps (`devices.cpu_ms`) | <!--answer:cpu_ms-->TODO<!--/answer--> |
-| GPU training, ms for 100 steps (`devices.gpu_ms`) | <!--answer:gpu_ms-->TODO<!--/answer--> |
-| Final training loss (`training.final_loss`) | <!--answer:final_loss-->TODO<!--/answer--> |
-
-**The thread sweep.** Give your four timings from `threads` — 1, 2, 4 and 8 threads — and say
-which count was fastest. (verbatim: the numbers, in order)
+**CPU threading sweep:**
 
 <!--answer:thread_sweep-->
-TODO
+1 thread(s): 2706.418 ms/step
+2 thread(s): 1980.125 ms/step
+4 thread(s): 2159.1 ms/step
+8 thread(s): 2385.439 ms/step
+Fastest: 2 threads (1980.125 ms/step; 1.37x faster than one thread).
 <!--/answer-->
 
----
-
-## 2. Intra-node parallelism, three ways
-
-**Why vectorizing wins.** Both attention implementations do the same arithmetic and produce the
-same result (the unit test checks that). Explain where the naive version's time actually goes,
-and what the vectorized one does differently — in terms of the machine, not the Python.
-(~70 words)
+## 2. Vectorization and SIMD
 
 <!--answer:vectorization_why-->
-TODO
+Naive attention took 641.925 ms, while the vectorized version took 2.945 ms (217.97x faster). Both calculate the same attention operation. The naive implementation runs many small operations through Python loops; the vectorized implementation delegates large matrix operations to optimized native numerical libraries. These kernels can exploit SIMD, cache locality and much lower interpreter overhead. The large measured speedup is therefore not attributable to SIMD alone: removing Python-level loops and improving memory access patterns are also essential.
 <!--/answer-->
 
-**Where the thread curve flattens, and why.** Using your sweep: more threads stopped helping —
-or started hurting — at some point. Say where, and give the reason. Your Colab runtime's vCPU
-count is part of the answer; so is what the threads have to coordinate on. (~80 words)
+## 3. Why CPU threading stops scaling
 
 <!--answer:threading_plateau-->
-TODO
+With 1, 2, 4 and 8 intra-op CPU threads, the measured times were 2706.418, 1980.125, 2159.1 and 2385.439 ms/step. Two threads were fastest (1.37x faster than one); four and eight threads were 9.0% and 20.5% slower than two, respectively. More threads do not imply more physical CPU cores. Once available parallel execution resources are saturated, scheduling, synchronization, contention for shared caches and memory bandwidth, and the serial part of each step outweigh any benefit. This short sweep identifies an empirical optimum for this Colab session, not a universal optimal thread count.
 <!--/answer-->
 
-**What made the GPU faster.** The model, the data and the step count were identical; only the
-device changed. Say what about a transformer training step suits a GPU, and name one workload
-that would *not* see this speed-up. (~70 words)
+## 4. GPU acceleration
 
 <!--answer:gpu_why-->
-TODO
+For the same 100-step training workload, CPU execution took 414208.0 ms and the T4 GPU took 13701.2 ms (30.23x faster). Transformer training involves large tensor multiplications and parallel gradient calculations, which map well to GPU compute units and memory bandwidth. This advantage is workload-dependent: kernel-launch overhead, data transfers and insufficient work per kernel can dominate small tasks. The comparison uses fresh models and is a measured end-to-end result, not a hardware-independent guarantee.
 <!--/answer-->
 
----
-
-## 3. The question
-
-**Where does parallelism stop helping, and why?** Pull the three experiments together. Your
-answer should distinguish the *kinds* of limit you met — work that cannot be divided, hardware
-you do not have, coordination that costs more than it saves, data that has to move — and say
-which one bound each experiment. One concrete number from section 1 per claim. (~150 words)
+## 5. Limits of intra-node parallelism
 
 <!--answer:parallelism_limit-->
-TODO
+The experiments reveal three different limits. Vectorization accelerated attention by 217.97x, mainly by replacing Python loops with optimized matrix kernels that can exploit SIMD. CPU intra-op threading improved from 2706.418 to 1980.125 ms/step at 2 threads, but degraded to 2385.439 ms at eight threads: available cores, synchronization, shared bandwidth and serial work limit scaling. The T4 completed 100 training steps 30.23x faster than the CPU by exploiting data-parallel tensor operations, yet a GPU still incurs launch and transfer overhead. The full 2,000-step training reached loss 1.4728 with 4935680 parameters; the Shakespeare-like sample has dialogue structure but remains linguistically imperfect. The lesson is to match the parallelism strategy to workload size and bottlenecks rather than maximize threads or device throughput blindly.
 <!--/answer-->
 
-**What you would measure next.** One experiment this phase did not run that would sharpen the
-answer, and what result would change your mind. (~50 words)
+## 6. Next experiment
 
 <!--answer:next_experiment-->
-TODO
+I would benchmark the same training step on CPU and T4 for increasing batch sizes and sequence lengths, with identical inputs, warm-up iterations, repeated trials and GPU synchronization before timing. I would record median step time and peak memory alongside throughput. My hypothesis is that GPU acceleration increases as tensor operations grow, while CPU threading saturates once contention dominates; small workloads may be limited by GPU launch and transfer overhead.
 <!--/answer-->
