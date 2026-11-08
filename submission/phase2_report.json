@@ -1,0 +1,30 @@
+{
+  "phase": "2",
+  "environment": {
+    "colab": true
+  },
+  "attention": {
+    "naive_ms": 641.925,
+    "vectorized_ms": 2.945,
+    "speedup": 217.97
+  },
+  "threads": {
+    "1": 2706.418,
+    "2": 1980.125,
+    "4": 2159.1,
+    "8": 2385.439
+  },
+  "devices": {
+    "cpu_ms": 414208.0,
+    "gpu_ms": 13701.2
+  },
+  "training": {
+    "steps": 2000,
+    "final_loss": 1.4728,
+    "param_count": 4935680
+  },
+  "sample": "\nSICINIUS:\nMy ghat many alter wordroy a man\nWhich in dear in soulder; for so your alregial.\n\nHORTENSIO:\nTut insented, givor sir, and true incounted\nA prince too be and what the susle,\nAnd bloassedly do",
+  "model": {
+    "gcs_url": "https://storage.googleapis.com/eurecomgpt-alex-2026-eurecomgpt/model.safetensors"
+  }
+}
